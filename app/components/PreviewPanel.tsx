@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -28,10 +29,15 @@ interface PreviewPanelProps {
   onRotatePage: (pageId: string) => void;
 }
 
+const MIN_ZOOM = 30;
+const MAX_ZOOM = 400;
+const WHEEL_STEP = 10;
+
 /**
- * Scrollable preview panel showing page thumbnails of the merged output.
- * Includes zoom control, page-level drag reorder via @dnd-kit, and
- * per-page rotation buttons.
+ * Scrollable preview panel with Ctrl+Wheel zoom, page-level DnD reorder,
+ * and per-page rotation buttons. Preview images are rendered at high
+ * resolution (1200px+) and displayed via CSS scaling for crisp results
+ * at any zoom level.
  */
 export function PreviewPanel({
   previews,
@@ -41,6 +47,8 @@ export function PreviewPanel({
   onReorderPages,
   onRotatePage,
 }: PreviewPanelProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -56,6 +64,18 @@ export function PreviewPanel({
       onReorderPages(String(active.id), String(over.id));
     }
   }
+
+  // Ctrl+Wheel (or Cmd+Wheel on Mac) to zoom
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -WHEEL_STEP : WHEEL_STEP;
+      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
+      onZoomChange(next);
+    },
+    [zoom, onZoomChange]
+  );
 
   // Empty state
   if (previews.length === 0 && !isRendering) {
@@ -78,7 +98,13 @@ export function PreviewPanel({
     <div className="flex flex-1 flex-col gap-3 overflow-hidden">
       {/* Toolbar: zoom control + loading indicator */}
       <div className="flex items-center gap-3">
-        <ZoomControl zoom={zoom} onZoomChange={onZoomChange} />
+        <ZoomControl
+          zoom={zoom}
+          onZoomChange={onZoomChange}
+          min={MIN_ZOOM}
+          max={MAX_ZOOM}
+          step={WHEEL_STEP}
+        />
         {isRendering && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />
@@ -87,7 +113,7 @@ export function PreviewPanel({
         )}
       </div>
 
-      {/* Scrollable preview area with DnD */}
+      {/* Scrollable + zoomable preview area with DnD */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -97,7 +123,11 @@ export function PreviewPanel({
           items={previews.map((p) => p.pageId)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex flex-1 flex-col items-center gap-4 overflow-y-auto rounded-lg bg-muted/30 p-4">
+          <div
+            ref={scrollRef}
+            onWheel={handleWheel}
+            className="flex flex-1 flex-col items-center gap-4 overflow-auto rounded-lg bg-muted/30 p-4"
+          >
             {previews.map((preview) => (
               <PageThumbnailItem
                 key={preview.pageId}

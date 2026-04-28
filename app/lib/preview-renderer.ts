@@ -20,9 +20,10 @@ export interface PreviewPage {
 }
 
 /** Default preview width in pixels.
- * Set high enough so that zoom up to 200% still looks sharp on screen.
- * The actual display size is controlled by CSS in the UI layer. */
-const DEFAULT_PREVIEW_WIDTH = 600;
+ * Rendered at high resolution so Ctrl+Wheel zoom up to 400% stays sharp.
+ * For a typical A4 page (595pt), this gives ~2× pixel density at 100% display,
+ * and still looks crisp at 300%+ zoom. The UI layer controls display size via CSS. */
+const DEFAULT_PREVIEW_WIDTH = 1200;
 
 /**
  * Render preview thumbnails for each page in the merged output.

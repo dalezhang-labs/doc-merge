@@ -38,10 +38,12 @@ export function PageThumbnailItem({
     transition,
   };
 
-  // Base display width — the preview bitmap is rendered at a higher
-  // resolution (e.g. 600px) for sharpness, but we display it at this
-  // base size and let zoom scale from here.
-  const BASE_DISPLAY_WIDTH = 250;
+  // Base display width in CSS pixels at 100% zoom.
+  // The preview bitmap is rendered at 1200px for sharpness — we display
+  // it at this base size and let zoom scale from here.  At 100% zoom the
+  // image is downscaled 4× from the bitmap → super crisp.  At 400% zoom
+  // it's displayed at ~1200px which matches the bitmap 1:1.
+  const BASE_DISPLAY_WIDTH = 300;
   const aspectRatio = preview.height / preview.width;
   const displayWidth = BASE_DISPLAY_WIDTH * (zoom / 100);
   const displayHeight = BASE_DISPLAY_WIDTH * aspectRatio * (zoom / 100);
