@@ -10,18 +10,20 @@ interface PageThumbnailItemProps {
   preview: PreviewPage;
   pageId: string;
   zoom: number;
+  layout: "list" | "grid";
   onRotate: (pageId: string) => void;
 }
 
 /**
  * A single sortable page thumbnail in the preview panel.
- * Provides a drag handle (top-left), rotation button (top-right),
- * zoom-scaled thumbnail image, and page number label.
+ * Supports both list and grid layouts. In grid mode, shows a prominent
+ * sequence number badge. High-res bitmap is CSS-scaled for crisp display.
  */
 export function PageThumbnailItem({
   preview,
   pageId,
   zoom,
+  layout,
   onRotate,
 }: PageThumbnailItemProps) {
   const {
@@ -38,15 +40,13 @@ export function PageThumbnailItem({
     transition,
   };
 
-  // Base display width in CSS pixels at 100% zoom.
-  // The preview bitmap is rendered at 1200px for sharpness — we display
-  // it at this base size and let zoom scale from here.  At 100% zoom the
-  // image is downscaled 4× from the bitmap → super crisp.  At 400% zoom
-  // it's displayed at ~1200px which matches the bitmap 1:1.
-  const BASE_DISPLAY_WIDTH = 300;
+  const isGrid = layout === "grid";
+
+  // Base display width depends on layout mode
+  const BASE_WIDTH = isGrid ? 150 : 300;
   const aspectRatio = preview.height / preview.width;
-  const displayWidth = BASE_DISPLAY_WIDTH * (zoom / 100);
-  const displayHeight = BASE_DISPLAY_WIDTH * aspectRatio * (zoom / 100);
+  const displayWidth = BASE_WIDTH * (zoom / 100);
+  const displayHeight = BASE_WIDTH * aspectRatio * (zoom / 100);
 
   return (
     <div
@@ -58,6 +58,15 @@ export function PageThumbnailItem({
     >
       {/* Thumbnail wrapper with controls overlay */}
       <div className="group relative">
+        {/* Sequence number badge — always visible in grid, hover in list */}
+        <span
+          className={`absolute top-1 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white backdrop-blur-sm ${
+            isGrid ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          } transition-opacity`}
+        >
+          {preview.pageNumber}
+        </span>
+
         {/* Drag handle — top-left */}
         <button
           className="absolute top-1 left-1 z-10 flex cursor-grab items-center rounded bg-black/40 p-0.5 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 active:cursor-grabbing"
@@ -79,13 +88,10 @@ export function PageThumbnailItem({
           <RotateCw className="size-3" />
         </Button>
 
-        {/* Thumbnail image — high-res bitmap scaled down for crisp display */}
+        {/* Thumbnail image */}
         <div
           className="overflow-hidden rounded-md shadow-sm ring-1 ring-foreground/5"
-          style={{
-            width: displayWidth,
-            height: displayHeight,
-          }}
+          style={{ width: displayWidth, height: displayHeight }}
         >
           <img
             src={preview.previewUrl}
@@ -93,18 +99,17 @@ export function PageThumbnailItem({
             width={preview.width}
             height={preview.height}
             className="block"
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
+            style={{ width: "100%", height: "100%" }}
           />
         </div>
       </div>
 
-      {/* Page number */}
-      <span className="text-xs text-muted-foreground tabular-nums">
-        {preview.pageNumber}
-      </span>
+      {/* Page number label — list mode only (grid uses the badge) */}
+      {!isGrid && (
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {preview.pageNumber}
+        </span>
+      )}
     </div>
   );
 }
