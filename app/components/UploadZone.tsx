@@ -135,10 +135,10 @@ export function UploadZone({
       <Upload className="size-8 text-muted-foreground" />
       <div>
         <p className="text-sm font-medium text-foreground">
-          Drop files here or click to upload
+          Drop files here, click to upload, or paste a screenshot
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          PDF, PNG, JPG — up to {maxFiles} files
+          PDF, PNG, JPG — up to {maxFiles} files · Ctrl+V to paste
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileStore } from "../hooks/useFileStore";
 import { useSettings } from "../hooks/useSettings";
 import { useMergePreview } from "../hooks/useMergePreview";
@@ -29,6 +29,43 @@ export function MergeAppInner() {
   // Keep refs to latest state for unmount cleanup
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  // Stable ref for addFiles so the paste handler doesn't re-register on every render
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+
+  // Listen for Ctrl+V / Cmd+V paste events to capture screenshots from clipboard
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const blob = item.getAsFile();
+        if (blob) {
+          // Create a File with a descriptive name and correct extension
+          const ext = item.type === "image/png" ? "png" : "jpg";
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+          const file = new File([blob], `screenshot-${timestamp}.${ext}`, {
+            type: item.type,
+          });
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFilesRef.current(imageFiles);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [handlePaste]);
 
   // Resource cleanup on unmount: close ImageBitmaps and revoke thumbnail URLs
   useEffect(() => {
